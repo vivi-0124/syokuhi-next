@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { inventory, consumption } from "@/db/schemas/app-schema";
+import { inventory, consumption, cookingLog } from "@/db/schemas/app-schema";
 import { auth } from "@/lib/auth";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
@@ -91,22 +91,40 @@ export async function cookDish(data: {
 
   if (!session) throw new Error("Unauthorized");
 
+  // 使用する食材の在庫情報を一括取得
+  const inventoryIds = data.ingredients.map((i) => i.inventoryId);
+  const inventoryList = await db.query.inventory.findMany({
+    where: (inventory, { inArray, and }) =>
+      and(eq(inventory.userId, session.user.id), inArray(inventory.id, inventoryIds)),
+  });
+
   let totalCost = 0;
 
-  // 1. 食材の消費とコスト計算
+  // 1. コスト計算とバリデーション
   for (const ingredient of data.ingredients) {
-    const inv = await db.query.inventory.findFirst({
-      where: eq(inventory.id, ingredient.inventoryId),
-    });
-
+    const inv = inventoryList.find((i) => i.id === ingredient.inventoryId);
     if (!inv || inv.remainingQuantity < ingredient.quantity) {
       throw new Error(`Insufficient quantity for ${inv?.name || "unknown item"}`);
     }
+    totalCost += (inv.purchasePrice / inv.totalQuantity) * ingredient.quantity;
+  }
 
-    const cost = (inv.purchasePrice / inv.totalQuantity) * ingredient.quantity;
-    totalCost += cost;
+  // 2. 調理ログの作成
+  const cookingLogId = crypto.randomUUID();
+  await db.insert(cookingLog).values({
+    id: cookingLogId,
+    userId: session.user.id,
+    dishName: data.dishName,
+    yieldQuantity: data.yieldQuantity,
+    unit: data.unit,
+    totalCost: Math.ceil(totalCost),
+    createdAt: data.date || new Date(),
+  });
 
-    // 消費ログ
+  // 3. 食材の消費記録と在庫更新
+  for (const ingredient of data.ingredients) {
+    const inv = inventoryList.find((i) => i.id === ingredient.inventoryId)!;
+
     await db.insert(consumption).values({
       id: crypto.randomUUID(),
       userId: session.user.id,
@@ -114,9 +132,9 @@ export async function cookDish(data: {
       quantity: ingredient.quantity,
       date: data.date || new Date(),
       note: `${data.dishName} の調理に使用`,
+      cookingLogId: cookingLogId,
     });
 
-    // 在庫減算
     await db
       .update(inventory)
       .set({
@@ -126,7 +144,7 @@ export async function cookDish(data: {
       .where(eq(inventory.id, ingredient.inventoryId));
   }
 
-  // 2. 新しい在庫アイテム（料理）の作成
+  // 4. 新しい在庫アイテム（料理）の作成
   await db.insert(inventory).values({
     id: crypto.randomUUID(),
     userId: session.user.id,
@@ -134,7 +152,8 @@ export async function cookDish(data: {
     totalQuantity: data.yieldQuantity,
     remainingQuantity: data.yieldQuantity,
     unit: data.unit,
-    purchasePrice: Math.ceil(totalCost), // 切り上げ
+    purchasePrice: Math.ceil(totalCost),
+    purchaseDate: data.date || new Date(),
   });
 
   revalidatePath("/inventory");
@@ -167,5 +186,25 @@ export async function getActiveInventory() {
   return await db.query.inventory.findMany({
     where: eq(inventory.userId, session.user.id),
     orderBy: (inventory, { desc }) => [desc(inventory.createdAt)],
+  });
+}
+
+export async function getCookingHistory() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) throw new Error("Unauthorized");
+
+  return await db.query.cookingLog.findMany({
+    where: eq(cookingLog.userId, session.user.id),
+    with: {
+      ingredients: {
+        with: {
+          inventory: true,
+        },
+      },
+    },
+    orderBy: (cookingLog, { desc }) => [desc(cookingLog.createdAt)],
   });
 }

@@ -29,7 +29,13 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 
-export function CookDialog({ onSuccess }: { onSuccess?: () => void }) {
+export function CookDialog({
+  onSuccess,
+  trigger,
+}: {
+  onSuccess?: () => void;
+  trigger?: React.ReactElement;
+}) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [inventoryList, setInventoryList] = useState<any[]>([]);
@@ -104,9 +110,11 @@ export function CookDialog({ onSuccess }: { onSuccess?: () => void }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button className="gap-2">
-            <Plus className="size-4" /> 料理を作る
-          </Button>
+          trigger || (
+            <Button className="gap-2">
+              <Plus className="size-4" /> 料理を作る
+            </Button>
+          )
         }
       />
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">

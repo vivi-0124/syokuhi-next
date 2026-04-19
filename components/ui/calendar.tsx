@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { DayPicker, getDefaultClassNames, type DayButton, type Locale } from "react-day-picker";
+import { format } from "date-fns";
 
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -126,7 +127,7 @@ function Calendar({
           return <ChevronDownIcon className={cn("size-4", className)} {...props} />;
         },
         DayButton: ({ ...props }) => {
-          const dateStr = props.day.date.toISOString().split("T")[0];
+          const dateStr = format(props.day.date, "yyyy-MM-dd");
           const amount = expenses?.[dateStr];
           return <CalendarDayButton amount={amount} locale={locale} {...props} />;
         },

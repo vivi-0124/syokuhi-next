@@ -5,6 +5,7 @@ import { consumption, inventory } from "@/db/schemas/app-schema";
 import { auth } from "@/lib/auth";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { headers } from "next/headers";
+import { format } from "date-fns";
 
 export async function getDailyConsumptionSummary() {
   const session = await auth.api.getSession({
@@ -33,7 +34,7 @@ export async function getDailyConsumptionSummary() {
   const summary: Record<string, number> = {};
 
   results.forEach((row) => {
-    const dateStr = new Date(row.date).toISOString().split("T")[0];
+    const dateStr = format(row.date, "yyyy-MM-dd");
     const unitPrice = row.purchasePrice / row.totalQuantity;
     const cost = Math.ceil(unitPrice * row.quantity); // 円単位なので切り上げ
 
@@ -116,7 +117,7 @@ export async function getConsumptionHistory() {
   const groups: Record<string, { date: Date; items: any[]; total: number }> = {};
 
   results.forEach((row) => {
-    const dateStr = new Date(row.date).toISOString().split("T")[0];
+    const dateStr = format(row.date, "yyyy-MM-dd");
     const cost = Math.ceil((row.purchasePrice / row.totalQuantity) * row.quantity);
 
     if (!groups[dateStr]) {

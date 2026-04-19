@@ -31,9 +31,11 @@ import {
 export function ConsumeInventoryDialog({
   selectedDate,
   onSuccess,
+  trigger,
 }: {
   selectedDate?: Date;
   onSuccess?: () => void;
+  trigger?: React.ReactElement;
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -76,9 +78,11 @@ export function ConsumeInventoryDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button className="w-full gap-2" variant="outline">
-            <Plus className="size-4" /> 消費を記録
-          </Button>
+          trigger || (
+            <Button className="w-full gap-2" variant="outline">
+              <Plus className="size-4" /> 消費を記録
+            </Button>
+          )
         }
       />
       <DialogContent className="sm:max-w-[425px]">

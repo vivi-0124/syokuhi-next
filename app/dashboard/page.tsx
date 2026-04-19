@@ -8,32 +8,25 @@ import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Utensils, ChefHat } from "lucide-react";
 import { getDailyConsumptionSummary, getConsumptionHistory } from "@/app/actions/dashboard";
-import { getActiveInventory } from "@/app/actions/inventory";
 import { AddInventoryDialog } from "@/components/inventory/add-inventory-dialog";
-import { ConsumeInventoryDialog } from "@/components/inventory/consume-inventory-dialog";
-import { InventoryList } from "@/components/inventory/inventory-list";
 import { BottomNav } from "@/components/layout/bottom-nav";
-import { FloatingAddButton } from "@/components/inventory/floating-add-button";
+import { FloatingConsumeButton } from "@/components/inventory/floating-consume-button";
 import { ConsumptionHistory } from "@/components/dashboard/consumption-history";
-import Link from "next/link";
 
 export default function DashboardPage() {
   const { data: session, isPending } = authClient.useSession();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [expenses, setExpenses] = useState<Record<string, number>>({});
-  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
   const [historyGroups, setHistoryGroups] = useState<any[]>([]);
 
   const refreshData = async () => {
     if (!session) return;
     try {
-      const [dailySummary, activeInventory, history] = await Promise.all([
+      const [dailySummary, history] = await Promise.all([
         getDailyConsumptionSummary(),
-        getActiveInventory(),
         getConsumptionHistory(),
       ]);
       setExpenses(dailySummary);
-      setInventoryItems(activeInventory);
       setHistoryGroups(history);
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error);
@@ -114,22 +107,10 @@ export default function DashboardPage() {
 
           {/* 履歴リスト */}
           <ConsumptionHistory groups={historyGroups} />
-
-          {/* クイックアクション (任意で残す) */}
-          <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold">現在の在庫</h3>
-              <Link href="/inventory" className="text-xs text-primary underline">
-                すべて見る
-              </Link>
-            </div>
-            <InventoryList items={inventoryItems.slice(0, 3)} />
-            <ConsumeInventoryDialog selectedDate={date} onSuccess={refreshData} />
-          </div>
         </div>
       </main>
       <BottomNav />
-      <FloatingAddButton onSuccess={refreshData} />
+      <FloatingConsumeButton selectedDate={date} onSuccess={refreshData} />
     </div>
   );
 }
