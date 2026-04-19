@@ -16,6 +16,8 @@ import { useEffect } from "react";
 import { AddInventoryDialog } from "@/components/inventory/add-inventory-dialog";
 import { ConsumeInventoryDialog } from "@/components/inventory/consume-inventory-dialog";
 import { InventoryList } from "@/components/inventory/inventory-list";
+import { BottomNav } from "@/components/layout/bottom-nav";
+import { FloatingAddButton } from "@/components/inventory/floating-add-button";
 
 export default function DashboardPage() {
   const { data: session, isPending } = authClient.useSession();
@@ -72,7 +74,7 @@ export default function DashboardPage() {
       </aside>
 
       {/* メインコンテンツ */}
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+      <main className="flex-1 p-4 md:p-8 overflow-y-auto pb-24 md:pb-8">
         <div className="max-w-5xl mx-auto space-y-8">
           <header className="flex items-end justify-between">
             <div>
@@ -168,6 +170,8 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
+      <BottomNav />
+      <FloatingAddButton onSuccess={refreshData} />
     </div>
   );
 }
