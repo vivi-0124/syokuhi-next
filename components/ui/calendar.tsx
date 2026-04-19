@@ -84,7 +84,7 @@ function Calendar({
         ),
         week: cn("mt-2 flex w-full", defaultClassNames.week),
         day: cn(
-          "group/day relative aspect-square h-full w-full rounded-(--cell-radius) p-0 text-center select-none [&:last-child[data-selected=true]_button]:rounded-r-(--cell-radius)",
+          "group/day relative h-full w-full rounded-(--cell-radius) p-0 text-center select-none [&:last-child[data-selected=true]_button]:rounded-r-(--cell-radius)",
           props.showWeekNumber
             ? "[&:nth-child(2)[data-selected=true]_button]:rounded-l-(--cell-radius)"
             : "[&:first-child[data-selected=true]_button]:rounded-l-(--cell-radius)",
@@ -180,19 +180,18 @@ function CalendarDayButton({
       data-range-end={modifiers.range_end}
       data-range-middle={modifiers.range_middle}
       className={cn(
-        "relative isolate z-10 flex aspect-square size-auto w-full min-w-(--cell-size) flex-col items-center justify-between p-1.5 border-0 font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-[3px] group-data-[focused=true]/day:ring-ring/50 data-[range-end=true]:rounded-(--cell-radius) data-[range-end=true]:rounded-r-(--cell-radius) data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground data-[range-middle=true]:rounded-none data-[range-middle=true]:bg-muted data-[range-middle=true]:text-foreground data-[range-start=true]:rounded-(--cell-radius) data-[range-start=true]:rounded-l-(--cell-radius) data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground dark:hover:text-foreground",
+        "relative isolate z-10 flex h-14 w-full min-w-0 flex-col items-center justify-between py-2 px-1 border-0 font-normal group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-[3px] data-[range-end=true]:rounded-(--cell-radius) data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground data-[range-start=true]:rounded-(--cell-radius) data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[selected-single=true]:bg-zinc-900 data-[selected-single=true]:text-white dark:data-[selected-single=true]:bg-zinc-100 dark:data-[selected-single=true]:text-zinc-900",
         defaultClassNames.day,
         className,
       )}
       {...props}
     >
-      <span className="text-[0.7rem] sm:text-xs self-start">{day.date.getDate()}</span>
-      {amount !== undefined && (
+      <span className={cn("text-xs sm:text-sm font-medium")}>{day.date.getDate()}</span>
+      {amount !== undefined && amount > 0 && (
         <span
           className={cn(
-            "text-[0.6rem] sm:text-[0.7rem] self-end mt-auto font-medium",
-            amount > 0 ? "text-red-500 dark:text-red-400" : "text-emerald-500",
-            modifiers.selected && "text-primary-foreground",
+            "text-[9px] sm:text-[10px] whitespace-nowrap font-bold h-4 flex items-center justify-center",
+            modifiers.selected ? "text-white/90 dark:text-zinc-950/80" : "text-orange-500",
           )}
         >
           {amount.toLocaleString()}
