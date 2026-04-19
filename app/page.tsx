@@ -4,6 +4,7 @@ import Image from "next/image";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function Home() {
   const { data: session, isPending } = authClient.useSession();
@@ -33,9 +34,15 @@ export default function Home() {
                 <p className="text-zinc-600 dark:text-zinc-400">
                   You are signed in as {session.user.email}
                 </p>
-                <Button variant="destructive" onClick={() => authClient.signOut()}>
-                  Sign Out
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    className="w-full"
+                    render={<Link href="/dashboard">Go to Dashboard</Link>}
+                  />
+                  <Button variant="ghost" onClick={() => authClient.signOut()}>
+                    Sign Out
+                  </Button>
+                </div>
               </div>
             ) : (
               <GoogleSignInButton />

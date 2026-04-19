@@ -8,6 +8,13 @@
       "when": 1776581461629,
       "tag": "0000_shiny_blazing_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1776583174355,
+      "tag": "0001_flippant_grim_reaper",
+      "breakpoints": true
     }
   ]
 }

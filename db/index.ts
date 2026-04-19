@@ -12,6 +12,7 @@ if (!connectionUrl) {
 }
 
 import * as authSchema from "./schemas/auth-schema";
+import * as appSchema from "./schemas/app-schema";
 
 export const db = drizzle({
   connection: {
@@ -20,5 +21,6 @@ export const db = drizzle({
   },
   schema: {
     ...authSchema,
+    ...appSchema,
   },
 });
