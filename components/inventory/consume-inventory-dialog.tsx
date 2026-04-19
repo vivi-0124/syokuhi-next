@@ -143,7 +143,7 @@ export function ConsumeInventoryDialog({
                       : "在庫から選ぶ"}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent className="z-[100]">
+                <SelectContent className="z-100">
                   {inventoryList.map((item) => (
                     <SelectItem key={item.id} value={item.id}>
                       <div className="flex flex-col">
