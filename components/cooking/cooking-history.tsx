@@ -45,7 +45,7 @@ export function CookingHistory({ logs }: { logs: CookingLog[] }) {
         <Dialog key={log.id}>
           <DialogTrigger
             render={
-              <div className="flex items-center gap-4 px-4 py-3 active:bg-zinc-50 dark:active:bg-zinc-900 transition-colors border-b border-zinc-100 dark:border-zinc-800 cursor-pointer">
+              <button className="w-full text-left flex items-center gap-4 px-4 py-3 active:bg-zinc-50 dark:active:bg-zinc-900 transition-colors border-b border-zinc-100 dark:border-zinc-800 cursor-pointer bg-transparent border-none outline-none">
                 <div className="p-2 bg-primary/10 rounded-full">
                   <ChefHat className="size-5 text-primary" />
                 </div>
@@ -65,7 +65,7 @@ export function CookingHistory({ logs }: { logs: CookingLog[] }) {
                   </span>
                   <ChevronRight className="size-4 text-zinc-300" />
                 </div>
-              </div>
+              </button>
             }
           />
           <DialogContent className="sm:max-w-md">

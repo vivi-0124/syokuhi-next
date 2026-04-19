@@ -1,0 +1,1 @@
+ALTER TABLE `user` ADD `budget` integer DEFAULT 50000 NOT NULL;

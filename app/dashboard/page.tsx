@@ -6,8 +6,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { authClient } from "@/lib/auth-client";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Utensils, ChefHat } from "lucide-react";
+import { LayoutDashboard, Utensils, ChefHat, Settings } from "lucide-react";
 import { getDailyConsumptionSummary, getConsumptionHistory } from "@/app/actions/dashboard";
+import Link from "next/link";
 import { AddInventoryDialog } from "@/components/inventory/add-inventory-dialog";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { FloatingConsumeButton } from "@/components/inventory/floating-consume-button";
@@ -66,6 +67,53 @@ export default function DashboardPage() {
 
       <main className="flex-1 overflow-y-auto pb-24 dark:bg-black">
         <div className="max-w-md mx-auto bg-white dark:bg-zinc-950 min-h-full shadow-xl">
+          {/* ヘッダーセクション */}
+          <header className="sticky top-0 z-30 bg-white dark:bg-zinc-950 border-b border-zinc-100 dark:border-zinc-800">
+            <div className="px-4 py-3 flex items-center justify-between">
+              <h1 className="text-xl font-bold tracking-tight">カレンダー</h1>
+              <Link href="/settings">
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Settings className="size-5" />
+                </Button>
+              </Link>
+            </div>
+
+            {/* 収支サマリーバー (ヘッダー内) */}
+            <div className="grid grid-cols-3 bg-white dark:bg-zinc-950 py-4 text-center border-t border-zinc-100 dark:border-zinc-800">
+              <div className="space-y-1">
+                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                  予算
+                </div>
+                <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                  {((session?.user as any)?.budget || 50000).toLocaleString()}円
+                </div>
+              </div>
+              <div className="space-y-1 border-x border-zinc-50 dark:border-zinc-900">
+                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                  支出
+                </div>
+                <div className="text-sm font-bold text-orange-600 dark:text-orange-400">
+                  {Object.values(expenses)
+                    .reduce((a, b) => a + b, 0)
+                    .toLocaleString()}
+                  円
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                  残り
+                </div>
+                <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                  {(
+                    ((session?.user as any)?.budget || 50000) -
+                    Object.values(expenses).reduce((a, b) => a + b, 0)
+                  ).toLocaleString()}
+                  円
+                </div>
+              </div>
+            </div>
+          </header>
+
           {/* カレンダーセクション */}
           <div className="p-4 border-b border-zinc-100 dark:border-zinc-800">
             <Calendar
@@ -76,33 +124,6 @@ export default function DashboardPage() {
               locale={ja}
               expenses={expenses}
             />
-          </div>
-
-          {/* 収支サマリーバー */}
-          <div className="grid grid-cols-3 bg-zinc-900 text-white py-4 text-center">
-            <div className="space-y-1">
-              <div className="text-[10px] text-zinc-400">収入</div>
-              <div className="text-sm font-bold text-sky-400">0円</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-[10px] text-zinc-400">支出</div>
-              <div className="text-sm font-bold text-orange-400">
-                {Object.values(expenses)
-                  .reduce((a, b) => a + b, 0)
-                  .toLocaleString()}
-                円
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-[10px] text-zinc-400">合計</div>
-              <div className="text-sm font-bold text-orange-400">
-                -
-                {Object.values(expenses)
-                  .reduce((a, b) => a + b, 0)
-                  .toLocaleString()}
-                円
-              </div>
-            </div>
           </div>
 
           {/* 履歴リスト */}
