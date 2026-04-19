@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, Package, History, Settings } from "lucide-react";
+import { LayoutDashboard, Package, ChefHat, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -10,8 +10,8 @@ export function BottomNav() {
 
   const navItems = [
     { label: "ホーム", icon: LayoutDashboard, href: "/dashboard" },
-    { label: "在庫", icon: Package, href: "/inventory" }, // まだページはないが枠組みとして
-    { label: "履歴", icon: History, href: "/history" },
+    { label: "在庫", icon: Package, href: "/inventory" },
+    { label: "料理", icon: ChefHat, href: "/cooking" },
     { label: "設定", icon: Settings, href: "/settings" },
   ];
 

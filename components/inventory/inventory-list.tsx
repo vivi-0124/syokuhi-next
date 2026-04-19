@@ -3,7 +3,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Package, AlertCircle } from "lucide-react";
+import { Package, AlertCircle, Trash2 } from "lucide-react";
+import { deleteInventory } from "@/app/actions/inventory";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface InventoryItem {
   id: string;
@@ -14,7 +17,30 @@ interface InventoryItem {
   purchasePrice: number;
 }
 
-export function InventoryList({ items }: { items: InventoryItem[] }) {
+export function InventoryList({
+  items,
+  showDelete = false,
+  onRefresh,
+}: {
+  items: InventoryItem[];
+  showDelete?: boolean;
+  onRefresh?: () => void;
+}) {
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("この在庫を削除しますか？")) return;
+    setDeleting(id);
+    try {
+      await deleteInventory(id);
+      onRefresh?.();
+    } catch (error) {
+      console.error(error);
+      alert("削除に失敗しました");
+    } finally {
+      setDeleting(null);
+    }
+  };
   if (items.length === 0) {
     return (
       <Card className="shadow-sm border-zinc-200/60 dark:border-zinc-800/60">
@@ -51,15 +77,28 @@ export function InventoryList({ items }: { items: InventoryItem[] }) {
                     単価: ¥{Math.ceil(item.purchasePrice / item.totalQuantity)} / {item.unit}
                   </p>
                 </div>
-                {isLow && (
-                  <Badge
-                    variant="destructive"
-                    className="flex gap-1 items-center px-1.5 py-0 text-[10px]"
-                  >
-                    <AlertCircle className="size-3" />
-                    残りわずか
-                  </Badge>
-                )}
+                <div className="flex items-center gap-2">
+                  {isLow && (
+                    <Badge
+                      variant="destructive"
+                      className="flex gap-1 items-center px-1.5 py-0 text-[10px]"
+                    >
+                      <AlertCircle className="size-3" />
+                      残りわずか
+                    </Badge>
+                  )}
+                  {showDelete && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 text-zinc-400 hover:text-destructive"
+                      onClick={() => handleDelete(item.id)}
+                      disabled={deleting === item.id}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-1.5">

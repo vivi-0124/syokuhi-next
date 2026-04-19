@@ -1,42 +1,40 @@
 "use client";
 
-import { useState } from "react";
-import { format } from "date-fns";
+import { useState, useEffect } from "react";
 import { ja } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { authClient } from "@/lib/auth-client";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Utensils, History } from "lucide-react";
-import { getDailyConsumptionSummary, getDashboardStats } from "@/app/actions/dashboard";
+import { LayoutDashboard, Utensils, ChefHat } from "lucide-react";
+import { getDailyConsumptionSummary, getConsumptionHistory } from "@/app/actions/dashboard";
 import { getActiveInventory } from "@/app/actions/inventory";
-import { useEffect } from "react";
 import { AddInventoryDialog } from "@/components/inventory/add-inventory-dialog";
 import { ConsumeInventoryDialog } from "@/components/inventory/consume-inventory-dialog";
 import { InventoryList } from "@/components/inventory/inventory-list";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { FloatingAddButton } from "@/components/inventory/floating-add-button";
+import { ConsumptionHistory } from "@/components/dashboard/consumption-history";
+import Link from "next/link";
 
 export default function DashboardPage() {
   const { data: session, isPending } = authClient.useSession();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [expenses, setExpenses] = useState<Record<string, number>>({});
-  const [stats, setStats] = useState({ todayTotal: 0, inventoryCount: 0 });
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [historyGroups, setHistoryGroups] = useState<any[]>([]);
 
   const refreshData = async () => {
     if (!session) return;
     try {
-      const [dailySummary, dashboardStats, activeInventory] = await Promise.all([
+      const [dailySummary, activeInventory, history] = await Promise.all([
         getDailyConsumptionSummary(),
-        getDashboardStats(),
         getActiveInventory(),
+        getConsumptionHistory(),
       ]);
       setExpenses(dailySummary);
-      setStats(dashboardStats);
       setInventoryItems(activeInventory);
+      setHistoryGroups(history);
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error);
     }
@@ -67,106 +65,66 @@ export default function DashboardPage() {
           </Button>
           <AddInventoryDialog onSuccess={refreshData} />
           <Button variant="ghost" className="justify-start gap-2 text-zinc-500">
-            <History className="size-4" />
-            履歴
+            <ChefHat className="size-4" />
+            料理
           </Button>
         </nav>
       </aside>
 
-      {/* メインコンテンツ */}
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto pb-24 md:pb-8">
-        <div className="max-w-5xl mx-auto space-y-8">
-          <header className="flex items-end justify-between">
-            <div>
-              <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                おかえりなさい、
-              </p>
-              <h1 className="text-3xl font-bold tracking-tight">{session.user.name}さん</h1>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-zinc-500">
-                {format(new Date(), "yyyy年MM月dd日 (E)", { locale: ja })}
-              </p>
-            </div>
-          </header>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* 統計カード */}
-            <Card className="shadow-sm border-zinc-200/60 dark:border-zinc-800/60">
-              <CardHeader className="pb-2">
-                <CardDescription>今日の支出</CardDescription>
-                <CardTitle className="text-2xl">¥{stats.todayTotal.toLocaleString()}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-zinc-500">前日比: -</p>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm border-zinc-200/60 dark:border-zinc-800/60">
-              <CardHeader className="pb-2">
-                <CardDescription>今月の合計</CardDescription>
-                <CardTitle className="text-2xl font-bold text-primary">
-                  ¥
-                  {Object.values(expenses)
-                    .reduce((a, b) => a + b, 0)
-                    .toLocaleString()}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-zinc-500">予算残高: -</p>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm border-zinc-200/60 dark:border-zinc-800/60">
-              <CardHeader className="pb-2">
-                <CardDescription>在庫アイテム数</CardDescription>
-                <CardTitle className="text-2xl">{stats.inventoryCount}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-zinc-500">賞味期限間近: 0</p>
-              </CardContent>
-            </Card>
+      <main className="flex-1 overflow-y-auto pb-24 dark:bg-black">
+        <div className="max-w-md mx-auto bg-white dark:bg-zinc-950 min-h-full shadow-xl">
+          {/* カレンダーセクション */}
+          <div className="p-4 border-b border-zinc-100 dark:border-zinc-800">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={setDate}
+              className="rounded-md w-full"
+              locale={ja}
+              expenses={expenses}
+            />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
-            {/* カレンダーセクション */}
-            <Card className="lg:col-span-4 shadow-sm border-zinc-200/60 dark:border-zinc-800/60">
-              <CardHeader>
-                <CardTitle>カレンダー</CardTitle>
-                <CardDescription>日々の消費と支出を確認できます。</CardDescription>
-              </CardHeader>
-              <CardContent className="flex justify-center p-0 pt-2 pb-6">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  className="rounded-md border-none w-full"
-                  locale={ja}
-                  expenses={expenses}
-                />
-              </CardContent>
-            </Card>
-
-            {/* 右側カラム: 当日の詳細 + 在庫リスト */}
-            <div className="lg:col-span-3 space-y-6">
-              {/* 当日の詳細 */}
-              <Card className="shadow-sm border-zinc-200/60 dark:border-zinc-800/60">
-                <CardHeader>
-                  <CardTitle>{date ? format(date, "MM月dd日") : "日付を選択"}</CardTitle>
-                  <CardDescription>この日のアクティビティ</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="text-sm text-zinc-500 italic">データがありません</div>
-                    <Separator />
-                    <ConsumeInventoryDialog selectedDate={date} onSuccess={refreshData} />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* 在庫リスト */}
-              <InventoryList items={inventoryItems} />
+          {/* 収支サマリーバー */}
+          <div className="grid grid-cols-3 bg-zinc-900 text-white py-4 text-center">
+            <div className="space-y-1">
+              <div className="text-[10px] text-zinc-400">収入</div>
+              <div className="text-sm font-bold text-sky-400">0円</div>
             </div>
+            <div className="space-y-1">
+              <div className="text-[10px] text-zinc-400">支出</div>
+              <div className="text-sm font-bold text-orange-400">
+                {Object.values(expenses)
+                  .reduce((a, b) => a + b, 0)
+                  .toLocaleString()}
+                円
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-[10px] text-zinc-400">合計</div>
+              <div className="text-sm font-bold text-orange-400">
+                -
+                {Object.values(expenses)
+                  .reduce((a, b) => a + b, 0)
+                  .toLocaleString()}
+                円
+              </div>
+            </div>
+          </div>
+
+          {/* 履歴リスト */}
+          <ConsumptionHistory groups={historyGroups} />
+
+          {/* クイックアクション (任意で残す) */}
+          <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold">現在の在庫</h3>
+              <Link href="/inventory" className="text-xs text-primary underline">
+                すべて見る
+              </Link>
+            </div>
+            <InventoryList items={inventoryItems.slice(0, 3)} />
+            <ConsumeInventoryDialog selectedDate={date} onSuccess={refreshData} />
           </div>
         </div>
       </main>

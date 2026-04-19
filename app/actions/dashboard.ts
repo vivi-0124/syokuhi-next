@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { consumption, inventory } from "@/db/schemas/app-schema";
 import { auth } from "@/lib/auth";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 
 export async function getDailyConsumptionSummary() {
@@ -86,6 +86,49 @@ export async function getDashboardStats() {
   return {
     todayTotal,
     inventoryCount: inventoryData.length,
-    // その他必要なデータがあれば追加
   };
+}
+
+export async function getConsumptionHistory() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) throw new Error("Unauthorized");
+
+  const results = await db
+    .select({
+      id: consumption.id,
+      date: consumption.date,
+      quantity: consumption.quantity,
+      note: consumption.note,
+      inventoryName: inventory.name,
+      totalQuantity: inventory.totalQuantity,
+      purchasePrice: inventory.purchasePrice,
+      unit: inventory.unit,
+    })
+    .from(consumption)
+    .innerJoin(inventory, eq(consumption.inventoryId, inventory.id))
+    .where(eq(consumption.userId, session.user.id))
+    .orderBy(sql`${consumption.date} DESC`);
+
+  // 日付ごとにグループ化
+  const groups: Record<string, { date: Date; items: any[]; total: number }> = {};
+
+  results.forEach((row) => {
+    const dateStr = new Date(row.date).toISOString().split("T")[0];
+    const cost = Math.ceil((row.purchasePrice / row.totalQuantity) * row.quantity);
+
+    if (!groups[dateStr]) {
+      groups[dateStr] = { date: row.date, items: [], total: 0 };
+    }
+
+    groups[dateStr].items.push({
+      ...row,
+      cost,
+    });
+    groups[dateStr].total += cost;
+  });
+
+  return Object.values(groups).sort((a, b) => b.date.getTime() - a.date.getTime());
 }

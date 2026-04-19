@@ -13,7 +13,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
+import { Plus, Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { ja } from "date-fns/locale";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { consumeInventory, getActiveInventory } from "@/app/actions/inventory";
 import {
   Select,
@@ -33,6 +38,11 @@ export function ConsumeInventoryDialog({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [inventoryList, setInventoryList] = useState<any[]>([]);
+  const [date, setDate] = useState<Date | undefined>(selectedDate || new Date());
+
+  useEffect(() => {
+    if (selectedDate) setDate(selectedDate);
+  }, [selectedDate]);
 
   useEffect(() => {
     if (open) {
@@ -50,7 +60,7 @@ export function ConsumeInventoryDialog({
         inventoryId: formData.get("inventoryId") as string,
         quantity: Number(formData.get("quantity")),
         note: formData.get("note") as string,
-        date: selectedDate,
+        date: date,
       });
       onSuccess?.();
       setOpen(false);
@@ -78,6 +88,34 @@ export function ConsumeInventoryDialog({
             <DialogDescription>在庫から消費した分を入力してください。</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>日付</Label>
+              <Popover>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !date && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {date ? format(date, "PPP", { locale: ja }) : <span>日付を選択</span>}
+                    </Button>
+                  }
+                />
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={setDate}
+                    initialFocus
+                    locale={ja}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="inventoryId">アイテムを選択</Label>
               <Select name="inventoryId" required>
