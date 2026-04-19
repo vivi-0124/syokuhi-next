@@ -29,6 +29,15 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 
+interface InventoryItem {
+  id: string;
+  name: string;
+  remainingQuantity: number;
+  totalQuantity: number;
+  purchasePrice: number;
+  unit: string;
+}
+
 export function CookDialog({
   onSuccess,
   trigger,
@@ -38,37 +47,47 @@ export function CookDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [inventoryList, setInventoryList] = useState<any[]>([]);
-  const [selectedIngredients, setSelectedIngredients] = useState<
-    { inventoryId: string; quantity: number }[]
-  >([{ inventoryId: "", quantity: 0 }]);
-  const [dishInfo, setDishInfo] = useState({ name: "", yield: 1, unit: "食" });
+  const [inventoryList, setInventoryList] = useState<InventoryItem[]>([]);
+  const [dishName, setDishName] = useState("");
+  const [yieldQuantity, setYieldQuantity] = useState<string>("1");
+  const [unit, setUnit] = useState("食");
   const [date, setDate] = useState<Date | undefined>(new Date());
+  const [ingredients, setIngredients] = useState<{ inventoryId: string; quantity: number }[]>([
+    { inventoryId: "", quantity: 1 },
+  ]);
 
   useEffect(() => {
     if (open) {
-      void getActiveInventory().then(setInventoryList);
+      void getActiveInventory().then((list) => setInventoryList(list as InventoryItem[]));
     }
   }, [open]);
 
   const addIngredient = () => {
-    setSelectedIngredients([...selectedIngredients, { inventoryId: "", quantity: 0 }]);
+    setIngredients([...ingredients, { inventoryId: "", quantity: 1 }]);
   };
 
   const removeIngredient = (index: number) => {
-    setSelectedIngredients(selectedIngredients.filter((_, i) => i !== index));
+    setIngredients(ingredients.filter((_, i) => i !== index));
   };
 
-  const updateIngredient = (index: number, field: string, value: any) => {
-    const newIngredients = [...selectedIngredients];
-    (newIngredients[index] as any)[field] = value;
-    setSelectedIngredients(newIngredients);
+  const updateIngredient = (
+    index: number,
+    field: "inventoryId" | "quantity",
+    value: string | number,
+  ) => {
+    const newIngredients = [...ingredients];
+    if (field === "inventoryId") {
+      newIngredients[index].inventoryId = value as string;
+    } else {
+      newIngredients[index].quantity = Number(value);
+    }
+    setIngredients(newIngredients);
   };
 
   const calculateTotalCost = () => {
-    return selectedIngredients.reduce((total, ing) => {
+    return ingredients.reduce((total, ing) => {
       const item = inventoryList.find((i) => i.id === ing.inventoryId);
-      if (item) {
+      if (item && item.totalQuantity > 0) {
         return total + (item.purchasePrice / item.totalQuantity) * ing.quantity;
       }
       return total;
@@ -77,7 +96,7 @@ export function CookDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedIngredients.some((ing) => !ing.inventoryId || ing.quantity <= 0)) {
+    if (ingredients.some((ing) => !ing.inventoryId || ing.quantity <= 0)) {
       alert("食材と数量を正しく入力してください");
       return;
     }
@@ -85,20 +104,21 @@ export function CookDialog({
     setLoading(true);
     try {
       await cookDish({
-        dishName: dishInfo.name,
-        yieldQuantity: dishInfo.yield,
-        unit: dishInfo.unit,
-        ingredients: selectedIngredients,
-        date: date,
+        dishName,
+        yieldQuantity: Number(yieldQuantity),
+        unit,
+        ingredients,
+        date,
       });
       onSuccess?.();
       setOpen(false);
       // Reset
-      setSelectedIngredients([{ inventoryId: "", quantity: 0 }]);
-      setDishInfo({ name: "", yield: 1, unit: "食" });
-    } catch (error: any) {
+      setIngredients([{ inventoryId: "", quantity: 1 }]);
+      setDishName("");
+    } catch (error: unknown) {
       console.error(error);
-      alert(error.message || "調理の記録に失敗しました");
+      const message = error instanceof Error ? error.message : "調理の記録に失敗しました";
+      alert(message);
     } finally {
       setLoading(false);
     }
@@ -166,126 +186,137 @@ export function CookDialog({
                 <Input
                   id="dishName"
                   placeholder="例: カレー"
-                  value={dishInfo.name}
-                  onChange={(e) => setDishInfo({ ...dishInfo, name: e.target.value })}
+                  value={dishName}
+                  onChange={(e) => setDishName(e.target.value)}
                   required
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="yield">出来高 (数量)</Label>
+                  <Label htmlFor="yield">出来上がり量</Label>
                   <Input
                     id="yield"
                     type="number"
-                    value={dishInfo.yield}
-                    onChange={(e) => setDishInfo({ ...dishInfo, yield: Number(e.target.value) })}
+                    value={yieldQuantity}
+                    onChange={(e) => setYieldQuantity(e.target.value)}
                     required
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="dishUnit">単位</Label>
+                  <Label htmlFor="unit">単位</Label>
                   <Input
-                    id="dishUnit"
+                    id="unit"
                     placeholder="食"
-                    value={dishInfo.unit}
-                    onChange={(e) => setDishInfo({ ...dishInfo, unit: e.target.value })}
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
                     required
                   />
                 </div>
               </div>
             </div>
 
-            <Separator />
-
-            {/* 食材セクション */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-base">使用する食材</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="xs"
-                  onClick={addIngredient}
-                  className="gap-1"
-                >
-                  <Plus className="size-3" /> 食材を追加
-                </Button>
-              </div>
-
+            {/* 食材リスト */}
+            <div className="space-y-3">
+              <Label>使用する食材</Label>
               <div className="space-y-3">
-                {selectedIngredients.map((ing, index) => (
+                {ingredients.map((ing, index) => (
                   <div
                     key={index}
-                    className="flex items-end gap-2 bg-white dark:bg-black p-2 rounded border border-zinc-200 dark:border-zinc-800"
+                    className="p-3 border border-zinc-100 dark:border-zinc-800 rounded-xl space-y-3 bg-zinc-50/50 dark:bg-zinc-900/50"
                   >
-                    <div className="flex-1 space-y-2">
+                    <div className="flex gap-2">
                       <Select
                         value={ing.inventoryId}
-                        onValueChange={(val) => updateIngredient(index, "inventoryId", val)}
+                        onValueChange={(val) => updateIngredient(index, "inventoryId", val || "")}
                       >
                         <SelectTrigger className="h-9">
-                          <SelectValue placeholder="食材を選択" />
+                          <SelectValue placeholder="食材を選択">
+                            {ing.inventoryId
+                              ? inventoryList.find((i) => i.id === ing.inventoryId)?.name
+                              : "食材を選択"}
+                          </SelectValue>
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="z-[100]">
                           {inventoryList.map((item) => (
                             <SelectItem key={item.id} value={item.id}>
-                              {item.name} (残:{item.remainingQuantity}
-                              {item.unit})
+                              <div className="flex flex-col">
+                                <span className="font-medium">{item.name}</span>
+                                <span className="text-[10px] text-zinc-500">
+                                  残り: {item.remainingQuantity}
+                                  {item.unit}
+                                </span>
+                              </div>
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      <div className="flex items-center gap-2">
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 flex items-center gap-2">
                         <Input
                           type="number"
-                          placeholder="数量"
-                          className="h-8"
-                          value={ing.quantity || ""}
-                          onChange={(e) =>
-                            updateIngredient(index, "quantity", Number(e.target.value))
-                          }
+                          step="0.1"
+                          value={ing.quantity}
+                          onChange={(e) => updateIngredient(index, "quantity", e.target.value)}
+                          className="h-8 text-sm"
                         />
-                        <span className="text-xs text-zinc-500 whitespace-nowrap">
+                        <span className="text-xs text-zinc-500">
                           {inventoryList.find((i) => i.id === ing.inventoryId)?.unit || ""}
                         </span>
                       </div>
+                      {ingredients.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 text-zinc-400"
+                          onClick={() => removeIngredient(index)}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      )}
                     </div>
-                    {selectedIngredients.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-9 text-zinc-400 hover:text-destructive"
-                        onClick={() => removeIngredient(index)}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    )}
                   </div>
                 ))}
               </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full border-dashed h-9 text-zinc-500"
+                onClick={addIngredient}
+              >
+                <Plus className="size-3 mr-1" /> 食材を追加
+              </Button>
             </div>
 
-            {/* コスト計算プレビュー */}
-            <div className="p-4 border border-primary/20 bg-primary/5 rounded-lg flex items-center justify-between">
-              <div className="flex items-center gap-2 text-primary">
-                <Calculator className="size-5" />
-                <span className="text-sm font-medium">合計原価 (自動計算)</span>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-primary">
+            {/* 原価計算の要約 */}
+            <div className="bg-primary/5 p-4 rounded-2xl flex items-center justify-between border border-primary/10">
+              <div className="space-y-1">
+                <div className="text-[10px] font-bold text-primary uppercase tracking-widest">
+                  推定原価 (合計)
+                </div>
+                <div className="text-xl font-black text-primary">
                   ¥{Math.ceil(totalCost).toLocaleString()}
                 </div>
-                <div className="text-[10px] text-zinc-500">
-                  1{dishInfo.unit}あたり ¥
-                  {dishInfo.yield > 0 ? Math.ceil(totalCost / dishInfo.yield).toLocaleString() : 0}
+              </div>
+              <div className="text-right space-y-1 text-zinc-500">
+                <div className="text-[10px] font-bold uppercase tracking-widest">単価</div>
+                <div className="text-sm font-bold">
+                  1{unit}あたり ¥
+                  {Number(yieldQuantity) > 0
+                    ? Math.ceil(totalCost / Number(yieldQuantity)).toLocaleString()
+                    : 0}
                 </div>
               </div>
             </div>
           </div>
 
-          <DialogFooter>
-            <Button type="submit" className="w-full" disabled={loading || !dishInfo.name}>
+          <DialogFooter className="pt-2">
+            <Button
+              type="submit"
+              className="w-full h-11 rounded-xl font-bold"
+              disabled={loading || !dishName}
+            >
               {loading ? "調理を記録中..." : "調理完了 (在庫に追加)"}
             </Button>
           </DialogFooter>

@@ -28,6 +28,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+interface InventoryItem {
+  id: string;
+  name: string;
+  remainingQuantity: number;
+  unit: string;
+}
+
 export function ConsumeInventoryDialog({
   selectedDate,
   onSuccess,
@@ -39,36 +46,37 @@ export function ConsumeInventoryDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [inventoryList, setInventoryList] = useState<any[]>([]);
+  const [inventoryList, setInventoryList] = useState<InventoryItem[]>([]);
   const [date, setDate] = useState<Date | undefined>(selectedDate || new Date());
-
-  useEffect(() => {
-    if (selectedDate) setDate(selectedDate);
-  }, [selectedDate]);
+  const [selectedInventoryId, setSelectedInventoryId] = useState<string>("");
 
   useEffect(() => {
     if (open) {
-      void getActiveInventory().then(setInventoryList);
+      void getActiveInventory().then((list) => {
+        setInventoryList(list as InventoryItem[]);
+      });
     }
   }, [open]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!selectedInventoryId) return;
     setLoading(true);
-    const formData = new FormData(e.currentTarget);
 
     try {
       await consumeInventory({
-        inventoryId: formData.get("inventoryId") as string,
-        quantity: Number(formData.get("quantity")),
-        note: formData.get("note") as string,
+        inventoryId: selectedInventoryId,
+        quantity: Number(new FormData(e.currentTarget).get("quantity")),
+        note: new FormData(e.currentTarget).get("note") as string,
         date: date,
       });
       onSuccess?.();
       setOpen(false);
-    } catch (error: any) {
+      setSelectedInventoryId("");
+    } catch (error: unknown) {
       console.error(error);
-      alert(error.message || "記録に失敗しました");
+      const message = error instanceof Error ? error.message : "記録に失敗しました";
+      alert(message);
     } finally {
       setLoading(false);
     }
@@ -122,15 +130,29 @@ export function ConsumeInventoryDialog({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="inventoryId">アイテムを選択</Label>
-              <Select name="inventoryId" required>
+              <Select
+                name="inventoryId"
+                value={selectedInventoryId}
+                onValueChange={(val) => setSelectedInventoryId(val ?? "")}
+                required
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="在庫から選ぶ" />
+                  <SelectValue placeholder="在庫から選ぶ">
+                    {selectedInventoryId
+                      ? inventoryList.find((i) => i.id === selectedInventoryId)?.name
+                      : "在庫から選ぶ"}
+                  </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[100]">
                   {inventoryList.map((item) => (
                     <SelectItem key={item.id} value={item.id}>
-                      {item.name} (残: {item.remainingQuantity}
-                      {item.unit})
+                      <div className="flex flex-col">
+                        <span className="font-medium">{item.name}</span>
+                        <span className="text-[10px] text-zinc-500">
+                          残り: {item.remainingQuantity}
+                          {item.unit}
+                        </span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
