@@ -11,9 +11,14 @@ if (!connectionUrl) {
   throw new Error("TURSO_CONNECTION_URL is not defined");
 }
 
+import * as authSchema from "./schemas/auth-schema";
+
 export const db = drizzle({
   connection: {
     url: connectionUrl,
     authToken,
+  },
+  schema: {
+    ...authSchema,
   },
 });
