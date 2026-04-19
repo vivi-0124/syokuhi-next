@@ -11,32 +11,37 @@ import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Utensils, History } from "lucide-react";
 import { getDailyConsumptionSummary, getDashboardStats } from "@/app/actions/dashboard";
+import { getActiveInventory } from "@/app/actions/inventory";
 import { useEffect } from "react";
 import { AddInventoryDialog } from "@/components/inventory/add-inventory-dialog";
 import { ConsumeInventoryDialog } from "@/components/inventory/consume-inventory-dialog";
+import { InventoryList } from "@/components/inventory/inventory-list";
 
 export default function DashboardPage() {
   const { data: session, isPending } = authClient.useSession();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [expenses, setExpenses] = useState<Record<string, number>>({});
   const [stats, setStats] = useState({ todayTotal: 0, inventoryCount: 0 });
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+
+  const refreshData = async () => {
+    if (!session) return;
+    try {
+      const [dailySummary, dashboardStats, activeInventory] = await Promise.all([
+        getDailyConsumptionSummary(),
+        getDashboardStats(),
+        getActiveInventory(),
+      ]);
+      setExpenses(dailySummary);
+      setStats(dashboardStats);
+      setInventoryItems(activeInventory);
+    } catch (error) {
+      console.error("Failed to fetch dashboard data:", error);
+    }
+  };
 
   useEffect(() => {
-    if (session) {
-      const fetchData = async () => {
-        try {
-          const [dailySummary, dashboardStats] = await Promise.all([
-            getDailyConsumptionSummary(),
-            getDashboardStats(),
-          ]);
-          setExpenses(dailySummary);
-          setStats(dashboardStats);
-        } catch (error) {
-          console.error("Failed to fetch dashboard data:", error);
-        }
-      };
-      void fetchData();
-    }
+    void refreshData();
   }, [session]);
 
   if (isPending) return <div className="flex h-screen items-center justify-center">Loading...</div>;
@@ -58,7 +63,7 @@ export default function DashboardPage() {
             <LayoutDashboard className="size-4" />
             ダッシュボード
           </Button>
-          <AddInventoryDialog />
+          <AddInventoryDialog onSuccess={refreshData} />
           <Button variant="ghost" className="justify-start gap-2 text-zinc-500">
             <History className="size-4" />
             履歴
@@ -140,20 +145,26 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* 当日の詳細 */}
-            <Card className="lg:col-span-3 shadow-sm border-zinc-200/60 dark:border-zinc-800/60">
-              <CardHeader>
-                <CardTitle>{date ? format(date, "MM月dd日") : "日付を選択"}</CardTitle>
-                <CardDescription>この日のアクティビティ</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="text-sm text-zinc-500 italic">データがありません</div>
-                  <Separator />
-                  <ConsumeInventoryDialog selectedDate={date} />
-                </div>
-              </CardContent>
-            </Card>
+            {/* 右側カラム: 当日の詳細 + 在庫リスト */}
+            <div className="lg:col-span-3 space-y-6">
+              {/* 当日の詳細 */}
+              <Card className="shadow-sm border-zinc-200/60 dark:border-zinc-800/60">
+                <CardHeader>
+                  <CardTitle>{date ? format(date, "MM月dd日") : "日付を選択"}</CardTitle>
+                  <CardDescription>この日のアクティビティ</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="text-sm text-zinc-500 italic">データがありません</div>
+                    <Separator />
+                    <ConsumeInventoryDialog selectedDate={date} onSuccess={refreshData} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 在庫リスト */}
+              <InventoryList items={inventoryItems} />
+            </div>
           </div>
         </div>
       </main>

@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import { addInventory } from "@/app/actions/inventory";
 
-export function AddInventoryDialog() {
+export function AddInventoryDialog({ onSuccess }: { onSuccess?: () => void }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -32,6 +32,7 @@ export function AddInventoryDialog() {
         unit: formData.get("unit") as string,
         purchasePrice: Number(formData.get("purchasePrice")),
       });
+      onSuccess?.();
       setOpen(false);
     } catch (error) {
       console.error(error);

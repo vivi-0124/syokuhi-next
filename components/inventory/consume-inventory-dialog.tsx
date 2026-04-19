@@ -23,7 +23,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export function ConsumeInventoryDialog({ selectedDate }: { selectedDate?: Date }) {
+export function ConsumeInventoryDialog({
+  selectedDate,
+  onSuccess,
+}: {
+  selectedDate?: Date;
+  onSuccess?: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [inventoryList, setInventoryList] = useState<any[]>([]);
@@ -46,6 +52,7 @@ export function ConsumeInventoryDialog({ selectedDate }: { selectedDate?: Date }
         note: formData.get("note") as string,
         date: selectedDate,
       });
+      onSuccess?.();
       setOpen(false);
     } catch (error: any) {
       console.error(error);
