@@ -9,7 +9,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   const navItems = [
-    { label: "ホーム", icon: LayoutDashboard, href: "/dashboard" },
+    { label: "ホーム", icon: LayoutDashboard, href: "/" },
     { label: "在庫", icon: Package, href: "/inventory" },
     { label: "料理", icon: ChefHat, href: "/cooking" },
   ];
